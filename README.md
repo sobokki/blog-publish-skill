@@ -9,11 +9,15 @@
 현재 대화 맥락에서 `상황 → 해결 과정 → 배운 것`을 뽑아 한국어 포스트 초안을 만들고,
 **확인을 받은 뒤에만** 블로그 레포에 `.md`를 커밋·push 한다. GitHub Pages가 자동 배포.
 
+**YouTube URL** 을 주면 (`"이 영상 블로그에 올려줘"`) `yt-dlp` 로 자막·메타데이터를 뽑아,
+영상을 임베드하고 내용을 분석·정리한 글을 만든다 (한국어 자막 우선).
+
 ## 요구사항
 
 - 마크다운 기반 정적 블로그 레포 (Jekyll [Chirpy](https://github.com/cotes2020/chirpy-starter) 권장, `_posts/` 폴더 사용)
 - GitHub Pages 배포 설정 (Chirpy는 Pages를 **GitHub Actions 빌드**로 설정)
 - Claude Code 또는 Codex CLI
+- (YouTube 정리 기능만 해당) [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) — `brew install yt-dlp`. 없으면 스킬이 설치를 안내한다.
 
 ## 설치
 
@@ -56,11 +60,18 @@ BLOG_URL="https://username.github.io"        # 사이트 URL (끝에 / 없이)
 /blog
 ```
 
+**YouTube 영상 정리**:
+```
+이 영상 블로그에 올려줘 https://youtu.be/VIDEO_ID
+```
+→ 자막·메타데이터 추출 → 분석 → 영상 임베드 + 정리글 초안 → 확인 → 발행.
+
 ## 발행 흐름
 
 ```
 "블로그에 올려줘"
   → 대화 맥락에서 상황/해결/배운점 추출
+    (YouTube URL 이면: yt-dlp 로 자막(ko 우선)·메타데이터 추출 → 내용 분석 → 영상 임베드)
   → Chirpy 포스트 초안 작성 (제목/날짜/카테고리/태그)
   → 초안 보여주고 확인 대기 ⏸        ← 확인 없이는 발행 안 함
   → _posts/YYYY-MM-DD-slug.md 저장 → git commit → push

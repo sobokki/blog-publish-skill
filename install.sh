@@ -22,7 +22,7 @@ mkdir -p "$CLAUDE_DIR"
   cat <<'FRONTMATTER'
 ---
 name: blog
-description: 개발하다 배운 것을 블로그 글로 발행할 때 사용. "블로그에 올려줘", "이거 블로그 글로 써줘", "TIL로 기록해줘", "방금 배운 거 블로그에 정리해줘" 같은 요청에 발동. 현재 대화 맥락에서 학습 포인트를 뽑아 포스트 초안을 만들고, 확인받은 뒤 GitHub Pages 블로그에 커밋·push 해서 발행한다. 블로그 경로/URL은 ~/.config/blog-publish/config.env 에서 읽는다.
+description: 개발하다 배운 것을 블로그 글로 발행할 때 사용. "블로그에 올려줘", "이거 블로그 글로 써줘", "TIL로 기록해줘", "방금 배운 거 블로그에 정리해줘" 같은 요청에 발동. 현재 대화 맥락에서 학습 포인트를 뽑아 포스트 초안을 만들고, 확인받은 뒤 GitHub Pages 블로그에 커밋·push 해서 발행한다. YouTube URL 을 주면 (예: "이 영상 블로그에 올려줘", "유튜브 정리해줘") yt-dlp 로 자막·메타데이터를 뽑아 영상을 임베드하고 내용을 분석한 글을 만든다. 블로그 경로/URL은 ~/.config/blog-publish/config.env 에서 읽는다.
 ---
 
 # 블로그 발행 스킬

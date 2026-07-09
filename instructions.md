@@ -24,7 +24,68 @@ EOF
 
 이후 모든 경로는 `$BLOG_REPO`, 발행 URL은 `$BLOG_URL` 을 기준으로 쓴다.
 
+## 0.5. 입력 유형 판별 (설정 로드 다음)
+
+요청/맥락에 **YouTube URL** 이 있는지 본다 (`youtube.com/watch?v=`, `youtu.be/`, `youtube.com/shorts/`).
+
+- **YouTube URL 있음** → 아래 **1-Y. YouTube 영상 추출** 로 간다. 이후 2~4단계(초안/검토/발행)는 공통.
+- **없음 (대화 맥락 정리)** → 기존 **1. 학습 포인트 추출** 로 간다.
+
 ## 절차 (반드시 순서대로)
+
+### 1-Y. YouTube 영상 추출 (YouTube URL 입력 시)
+
+`yt-dlp` 로 메타데이터와 자막을 뽑아 내용을 분석한다.
+
+**전제**: `yt-dlp` 설치 확인. 없으면 사용자에게 알리고 `brew install yt-dlp` 승인받아 설치 (시스템 전역 설치).
+
+```bash
+command -v yt-dlp || echo "NEEDS_INSTALL"
+```
+
+**1) 메타데이터** (제목·채널·길이·업로드일):
+
+```bash
+yt-dlp --skip-download \
+  --print "title:%(title)s" --print "channel:%(channel)s" \
+  --print "duration:%(duration_string)s" --print "upload:%(upload_date)s" \
+  "<URL>"
+```
+
+**2) 자막 다운로드** — **한국어(ko) 우선**, 없으면 en → 첫 자동자막 fallback. scratchpad 에 받는다:
+
+```bash
+cd <scratchpad>
+yt-dlp --skip-download --write-auto-subs --write-subs \
+  --sub-langs "ko,en" --sub-format "srt/vtt/best" \
+  -o "sub_%(id)s.%(ext)s" "<URL>"
+ls sub_*.srt sub_*.vtt 2>/dev/null
+```
+자막이 아예 없으면(캡션 미제공) 분석 불가 — 사용자에게 알리고, 임베드만 한 글로 갈지 물어본다.
+
+**3) 자막 정제** — 타임스탬프/인덱스/중복 제거해 순수 텍스트로:
+
+```bash
+python3 - <<'PY'
+import re, glob
+f = sorted(glob.glob("sub_*.ko.*") or glob.glob("sub_*.en.*") or glob.glob("sub_*"))[0]
+raw = open(f, encoding="utf-8").read()
+out = []
+for ln in raw.splitlines():
+    if re.match(r'^\d+$', ln) or '-->' in ln: continue
+    ln = re.sub(r'<[^>]+>', '', ln).strip()
+    if ln and (not out or out[-1] != ln): out.append(ln)
+text = re.sub(r'\s+', ' ', " ".join(out)).strip()
+open("transcript_clean.txt","w",encoding="utf-8").write(text)
+print("chars:", len(text)); print(text[:800])
+PY
+```
+
+**4) 내용 분석** — `transcript_clean.txt` 전체를 읽고, 영상이 무엇을 다루는지 구조화해서 **"내가 이 영상에서 배운 것"** 관점으로 재구성한다. 자막을 그대로 옮기지 않는다 (요약·해석·핵심 정리).
+
+**5) 영상 ID 확보** — 임베드에 쓸 11자 video id (`watch?v=` 뒤, `youtu.be/` 뒤, `shorts/` 뒤).
+
+이후 **2. 초안 작성** 으로 간다. 단, YouTube 글은 본문 구조가 다르다 (2단계 참고).
 
 ### 1. 학습 포인트 추출
 현재 대화 맥락에서 다음을 뽑는다:
@@ -60,6 +121,40 @@ tags: [tag1, tag2, tag3]
 - **코드/에러 메시지**는 fenced code block(```lang)으로 넣는다.
 - 제목은 낚시성 없이, 무엇을 다뤘는지 드러나게.
 - 과장·군더더기 없이. 실제로 배운 것에 집중.
+
+#### 2-Y. YouTube 글 형식 (1-Y 로 왔을 때)
+
+본문 뼈대를 상황/해결/배운것 대신 아래로 바꾼다. `title`/`date`/`categories`/`tags` frontmatter 규칙(2-1)은 동일.
+
+```markdown
+---
+title: "..."
+date: {2-1 시각}
+categories: [TIL, ...]
+tags: [..., youtube]
+---
+
+## 왜 이 영상을
+{왜 봤는지 / 어떤 맥락. 관련 이전 글 있으면 내부 링크}
+
+{% raw %}{% include embed/youtube.html id='<VIDEO_ID>' %}{% endraw %}
+
+> 채널: {채널명} · 길이 {길이}
+
+## 1. {핵심 주제}
+{자막 분석 기반 정리}
+
+## 2. {핵심 주제}
+...
+
+## 정리
+{내가 남길 것 3가지 안팎 + 후속 계획}
+```
+
+- 임베드는 Chirpy 표준 include `{% raw %}{% include embed/youtube.html id='...' %}{% endraw %}` 사용. `<VIDEO_ID>` 는 1-Y 5)에서 확보한 11자 id.
+- 첫 문단에 채널명·길이 등 출처를 명시한다 (attribution).
+- 자막을 그대로 옮기지 말고 **핵심을 재구성**한다. 한계·주의점 등 실전 포인트가 있으면 별도 섹션으로.
+- `tags` 에 `youtube` 를 넣는다.
 
 #### 2-1. frontmatter 값 규칙
 - `title`: 큰따옴표로 감싼다.
@@ -103,11 +198,14 @@ tags: [tag1, tag2, tag3]
 - **회사 기밀 주의** — 업무 코드의 구체적 비즈니스 로직이 드러나면 일반화하거나 사용자에게 확인. "무엇을 배웠나"(개념)에 집중하고 "누구의 코드"는 지운다.
 - **cwd 아니라 `$BLOG_REPO`** — 다른 프로젝트에서 코딩 중이어도 반드시 블로그 레포 경로에서 커밋한다.
 - **이미지는 범위 밖** — 텍스트·코드 위주. 스크린샷 자동 첨부는 하지 않는다.
+- **YouTube 출처 명시** — 영상 글은 반드시 임베드 + 채널명을 넣어 원저작자를 밝힌다. 자막 전문을 그대로 붙여넣지 않는다 (핵심 재구성). 영상 파일 자체를 다운로드하지 않는다 (자막·메타데이터만).
 
 ## 체크리스트
 
 - [ ] `~/.config/blog-publish/config.env` 로드 (없으면 생성)
-- [ ] 대화에서 상황/해결/배운점 추출
+- [ ] 입력 유형 판별 (대화 맥락 vs YouTube URL)
+- [ ] (YouTube) `yt-dlp` 설치 확인 → 메타데이터·자막(ko 우선) 추출 → 정제 → 분석 → video id 확보
+- [ ] 대화에서 상황/해결/배운점 추출 (또는 YouTube 글 형식 2-Y)
 - [ ] `date` 명령으로 현재 시각 확보
 - [ ] 초안 + Chirpy frontmatter 작성
 - [ ] 초안 전체를 보여주고 확인 대기
