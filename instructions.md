@@ -137,7 +137,7 @@ tags: [..., youtube]
 ## 왜 이 영상을
 {왜 봤는지 / 어떤 맥락. 관련 이전 글 있으면 내부 링크}
 
-{% raw %}{% include embed/youtube.html id='<VIDEO_ID>' %}{% endraw %}
+{% include embed/youtube.html id='<VIDEO_ID>' %}
 
 > 채널: {채널명} · 길이 {길이}
 
@@ -151,7 +151,8 @@ tags: [..., youtube]
 {내가 남길 것 3가지 안팎 + 후속 계획}
 ```
 
-- 임베드는 Chirpy 표준 include `{% raw %}{% include embed/youtube.html id='...' %}{% endraw %}` 사용. `<VIDEO_ID>` 는 1-Y 5)에서 확보한 11자 id.
+- 임베드는 Chirpy 표준 include `{% include embed/youtube.html id='...' %}` 를 **그대로** 글에 넣는다. `<VIDEO_ID>` 는 1-Y 5)에서 확보한 11자 id.
+- ⚠️ **`{% raw %}` 래퍼를 붙이지 않는다.** 붙이면 Jekyll 이 include 를 실행하지 않고 코드 텍스트로 출력해 영상이 안 뜬다 (실제 발행 사고 사례). include 만 단독으로.
 - 첫 문단에 채널명·길이 등 출처를 명시한다 (attribution).
 - 자막을 그대로 옮기지 말고 **핵심을 재구성**한다. 한계·주의점 등 실전 포인트가 있으면 별도 섹션으로.
 - `tags` 에 `youtube` 를 넣는다.
